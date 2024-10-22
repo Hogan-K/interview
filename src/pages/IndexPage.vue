@@ -4,7 +4,7 @@
       <div class="q-mb-xl">
         <q-input v-model="tempData.name" label="姓名" />
         <q-input v-model="tempData.age" label="年齡" />
-        <q-btn color="primary" class="q-mt-md">新增</q-btn>
+        <q-btn color="primary" class="q-mt-md" @click="createTableData()">新增</q-btn>
       </div>
 
       <q-table
@@ -35,11 +35,11 @@
               :props="props"
               style="min-width: 120px"
             >
-              <div>{{ col.value }}</div>
+              <q-input v-if="currDate.id === props.row.id" v-model="currDate[col.name]" :label="col.label" @change="editData()" />
+              <div v-else>{{ col.value }}</div>
             </q-td>
             <q-td class="text-right" auto-width v-if="tableButtons.length > 0">
               <q-btn
-                @click="handleClickOption(btn, props.row)"
                 v-for="(btn, index) in tableButtons"
                 :key="index"
                 size="sm"
@@ -49,6 +49,7 @@
                 :icon="btn.icon"
                 class="q-ml-md"
                 padding="5px 5px"
+                @click="handleClickOption(btn, props.row)"
               >
                 <q-tooltip
                   transition-show="scale"
@@ -86,12 +87,22 @@ interface btnType {
   icon: string;
   status: string;
 }
-const blockData = ref([
-  {
-    name: 'test',
-    age: 25,
-  },
-]);
+
+const blockData = ref([]);
+
+const getTableDataList = () => {
+  axios
+    .get('https://dahua.metcfire.com.tw/api/CRUDTest/a')
+    .then((response) => {
+      if (response.status === 200) {
+        blockData.value = response.data;
+      }
+    })
+    .catch((error) => {
+      blockData.value = [];
+    });
+}
+
 const tableConfig = ref([
   {
     label: '姓名',
@@ -123,9 +134,57 @@ const tempData = ref({
   name: '',
   age: '',
 });
-function handleClickOption(btn, data) {
-  // ...
+
+const createTableData = async () => {
+  axios
+    .post('https://dahua.metcfire.com.tw/api/CRUDTest', tempData.value)
+    .then((response) => {
+      if (response.status === 200) {
+        getTableDataList()
+      }
+    })
+    .catch((error) => {
+      console.log(error)
+    })
 }
+const deleteTableData = (id) => {
+  axios
+    .delete(`https://dahua.metcfire.com.tw/api/CRUDTest/${id}`)
+    .then((response) => {
+      if (response.status === 200) {
+        getTableDataList()
+      }
+    })
+    .catch((error) => {
+      console.log(error)
+    })
+}
+
+const currDate = ref({});
+
+const editData = () => {
+  axios
+    .patch('https://dahua.metcfire.com.tw/api/CRUDTest', currDate.value)
+    .then((respones) => {
+      console.log(respones)
+      if (respones.status === 200) {
+        currDate.value = {};
+      }
+    })
+    .catch((error) => {
+      console.log(error)
+    })
+}
+const handleClickOption = (btnType, rowData) => {
+  if (btnType.status === 'edit') {
+    currDate.value = rowData;
+  } else if (btnType.status === 'delete') {
+    deleteTableData(rowData.id);
+  }
+}
+
+// init
+getTableDataList()
 </script>
 
 <style lang="scss" scoped>
